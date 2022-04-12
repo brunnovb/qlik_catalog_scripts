@@ -64,6 +64,7 @@ echo "==== Criando diretório temporário para armazenar os arquivos .json ===="
 
 set -e
 
+#Interação 1
 echo "==== Realizando conexão com o Qlik Catalog ===="
 curl -m 2 -s -k -X GET -c $tmpdir/${arquivo_criado}1.ck -L "$url_catalog/login" --output /dev/null && echo ""
 
@@ -78,8 +79,9 @@ fi
 
 CSRF_TOKEN1=$(cat $tmpdir/${arquivo_criado}1.ck | grep 'XSRF' | cut -f7)
 
+#Interação 2
 echo "==== Realizando autenticação no Qlik Catalog ===="
-curl -s -k -X POST -c $tmpdir/${arquivo_criado}2.ck -b $tmpdir/${arquivo_criado}1.ck -d "j_usuario=${usuario}&j_password=${password}&_csrf=$CSRF_TOKEN1" \
+curl -m 2 -s -k -X POST -c $tmpdir/${arquivo_criado}2.ck -b $tmpdir/${arquivo_criado}1.ck -d "j_username=${usuario}&j_password=${password}&_csrf=$CSRF_TOKEN1" \
      -H "Content-Type: application/x-www-form-urlencoded" \
 	 "$url_catalog/j_spring_security_check" && echo""
 
@@ -94,8 +96,9 @@ fi
 
 CSRF_TOKEN2=$(cat $tmpdir/${arquivo_criado}2.ck | grep 'XSRF' | cut -f7)
 
+#Interação 3
 echo "==== Carregando as origens existentes ===="
-outputfile=$tmpdir$config_arquivo
+
 curl -s -k -X GET -b $tmpdir/${arquivo_criado}2.ck \
      -H "Content-Type: application/x-www-form-urlencoded" \
 	 -H "X-XSRF-TOKEN:$CSRF_TOKEN2" \
@@ -130,7 +133,7 @@ curl -s -k -X PUT "$url_catalog/entity/v1/loadDataForEntities/${bDoAsync}" \
      -d @$tmpdir/${arquivo_criado}3.json \
 	 > $tmpdir/${arquivo_criado}4.json 
 
-echo -e "==== Entidades carregadas ====\nLoadId\tEntityName\tStatus\tLoadTime"  >&2
+echo -e "==== Entidades carregadas ====\nId entidade\tNome entidade\tStatus\tTempo de carga"  >&2
 jq .[] $tmpdir/${arquivo_criado}4.json | jq -r '[.id, .entityName, .status, .loadTime] | @tsv'  >&2
 echo -e "\n"  >&2
 
